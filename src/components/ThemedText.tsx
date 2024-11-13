@@ -1,6 +1,7 @@
+import { Reactive } from '@legendapp/state/react';
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { useThemeColor } from '@/src/hooks/useThemeColor';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 export type ThemedTextProps = TextProps & {
 	lightColor?: string;
@@ -18,7 +19,7 @@ export function ThemedText({
 	const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
 
 	return (
-		<Text
+		<Reactive.Text
 			style={[
 				{ color },
 				type === 'default' ? styles.default : undefined,
