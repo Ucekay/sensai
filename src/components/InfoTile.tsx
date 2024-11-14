@@ -1,6 +1,6 @@
 import { useCalendars, useLocales } from 'expo-localization';
 import React from 'react';
-import { StyleSheet, View,Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { ViewProps } from 'react-native';
 
 import { currentTime } from '@legendapp/state/helpers/time';
@@ -10,6 +10,7 @@ import { Colors } from '@/constants/SystemColors';
 import { useBatteryLevel } from '@/hooks/useBatteryLevel';
 import { useBrightness } from '@/hooks/useBrightness';
 import { useMagneticField } from '@/hooks/useMagneticField';
+import { time$ } from '@/observable';
 
 import { ThemedText } from './ThemedText';
 
@@ -21,16 +22,16 @@ interface InfoTileProps extends ViewProps {
 
 const InfoTile = observer((props: InfoTileProps) => {
 	const { type, style, ...rest } = props;
-	const magneticField = useMagneticField();
-	const brightness = useBrightness();
-	const batteryLevel = useBatteryLevel();
+	const magneticField$ = useMagneticField();
+	const brightness$ = useBrightness();
+	const batteryLevel$ = useBatteryLevel();
 
 	const locales = useLocales();
 	const calendars = useCalendars();
 	const languageTag = locales[0]?.languageTag;
 	const timeZone = calendars[0]?.timeZone;
 
-	const time$ = useObservable(() => {
+	time$.set(() => {
 		if (languageTag && timeZone) {
 			return new Date(currentTime.get()).toLocaleTimeString(languageTag, {
 				timeZone,
@@ -46,13 +47,16 @@ const InfoTile = observer((props: InfoTileProps) => {
 		switch (type) {
 			case 'magnetic':
 				return {
-					value: magneticField.z.get().toFixed(2),
+					value: magneticField$.z.get().toFixed(2),
 					unit: 'μT',
 				};
 			case 'battery':
-				return { value: (batteryLevel.get() * 100).toFixed(0), unit: '%' };
+				return {
+					value: (batteryLevel$.get() * 100).toFixed(0),
+					unit: '%',
+				};
 			case 'brightness':
-				return { value: (brightness.get() * 100).toFixed(0), unit: '%' };
+				return { value: (brightness$.get() * 100).toFixed(0), unit: '%' };
 			case 'time':
 				return { value: time$.get(), unit: '' };
 			default:
@@ -69,7 +73,7 @@ const InfoTile = observer((props: InfoTileProps) => {
 			case 'battery':
 				return 'Battery Level';
 			case 'brightness':
-				return 'Brightness';
+				return 'brightness';
 			case 'time':
 				return 'Current Time';
 			default:
@@ -79,10 +83,21 @@ const InfoTile = observer((props: InfoTileProps) => {
 
 	return (
 		<View style={style} {...rest}>
-			<Text style={[styles.title, {color: Colors.secondaryLabel}]}>{getTitle()}</Text>
-			<Text style={[styles.value, {color: Colors.label}]}>
-				{typeof value === 'number' ? value : value}
+			<Text style={[styles.title, { color: Colors.secondaryLabel }]}>
+				{getTitle()}
 			</Text>
+			<View
+				style={{
+					flexDirection: 'row',
+					justifyContent: 'space-around',
+					alignItems: 'baseline',
+				}}
+			>
+				<Text style={[styles.value, { color: Colors.label }]}>
+					{typeof value === 'number' ? value : value}
+				</Text>
+				<Text style={[styles.unit, { color: Colors.label }]}>{unit}</Text>
+			</View>
 		</View>
 	);
 });
@@ -90,11 +105,17 @@ const InfoTile = observer((props: InfoTileProps) => {
 const styles = StyleSheet.create({
 	title: {
 		fontSize: 14,
-		marginBottom: 4,
 	},
 	value: {
 		fontSize: 24,
 		fontWeight: 'bold',
+		textAlign: 'center',
+		flex: 1,
+	},
+	unit: {
+		fontSize: 20,
+		fontWeight: 'bold',
+		textAlignVertical: 'bottom',
 	},
 });
 

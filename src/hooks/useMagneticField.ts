@@ -1,18 +1,16 @@
 import { Magnetometer } from 'expo-sensors';
 import { useEffect } from 'react';
 
-import { useObservable } from '@legendapp/state/react';
+import { magneticField$ } from '@/observable';
 
 export const useMagneticField = () => {
-	const magneticField$ = useObservable({
-		x: 0,
-		y: 0,
-		z: 0,
-	});
-
 	useEffect(() => {
 		const magSubscription = Magnetometer.addListener((result) => {
-			magneticField$.assign(result);
+			magneticField$.assign({
+				x: Math.abs(result.x),
+				y: Math.abs(result.y),
+				z: Math.abs(result.z),
+			});
 		});
 
 		Magnetometer.setUpdateInterval(500);
@@ -20,7 +18,7 @@ export const useMagneticField = () => {
 		return () => {
 			magSubscription.remove();
 		};
-	}, [magneticField$]);
+	}, []);
 
 	return magneticField$;
 };

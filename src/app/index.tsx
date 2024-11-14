@@ -1,5 +1,4 @@
-import { SFSymbol, SymbolView, SymbolViewProps } from 'expo-symbols';
-import { useEffect } from 'react';
+import { SymbolView } from 'expo-symbols';
 import {
 	Pressable,
 	SafeAreaView,
@@ -9,19 +8,83 @@ import {
 	useWindowDimensions,
 } from 'react-native';
 
+import {
+	batteryLevel$,
+	brightness$,
+	magneticField$,
+	time$,
+} from '@/observable';
 import * as Colors from '@bacons/apple-colors';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
-import { observer } from '@legendapp/state/react';
+import { Reactive, observer, useObservable } from '@legendapp/state/react';
+import { useImageManipulator } from 'expo-image-manipulator';
 import { launchImagePlaygroundAsync } from 'react-native-apple-image-playground';
 import Animated, {
 	useAnimatedStyle,
 	useSharedValue,
-	withClamp,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import InfoTile from '@/components/InfoTile';
 import { imagesStore$ } from '@/observable';
+import { observe, when } from '@legendapp/state';
+
+// 磁力のマッピング (μT)
+const magneticFieldMap = (value: number): string => {
+	if (value >= 100) return 'intense presence';
+	if (value >= 70) return 'powerful atmosphere';
+	if (value >= 50) return 'dynamic space';
+	if (value >= 30) return 'subtle harmony';
+	return 'quiet essence';
+};
+
+// バッテリー残量のマッピング (%)
+const batteryLevelMap = (value: number): string => {
+	if (value >= 80) return 'vibrant presence';
+	if (value >= 60) return 'strong essence';
+	if (value >= 40) return 'stable form';
+	if (value >= 20) return 'quiet atmosphere';
+	return 'fading presence';
+};
+
+// 画面の明るさのマッピング (0-1)
+const screenBrightnessMap = (value: number): string => {
+	if (value >= 0.8) return 'intense atmosphere';
+	if (value >= 0.6) return 'vivid presence';
+	if (value >= 0.4) return 'balanced space';
+	if (value >= 0.2) return 'gentle essence';
+	return 'subtle form';
+};
+
+// 時間のマッピング (0-23時)
+const timeOfDayMap = (hour: number): string => {
+	if (hour >= 20 || hour < 4) return 'mysterious night';
+	if (hour >= 16) return 'golden evening';
+	if (hour >= 11) return 'vivid noon';
+	if (hour >= 7) return 'bright morning';
+	return 'misty dawn';
+};
+
+interface DeviceStatus {
+	magneticField: number;
+	batteryLevel: number;
+	brightness: number;
+	hour: number;
+}
+
+const getPromptWords = (status: DeviceStatus): string[] => {
+	return [
+		magneticFieldMap(status.magneticField),
+		batteryLevelMap(status.batteryLevel),
+		screenBrightnessMap(status.brightness),
+		timeOfDayMap(status.hour),
+	];
+};
+
+const getHourFromTimeString = (timeString: string): number => {
+	return Number.parseInt(timeString.split(':')[0], 10);
+};
+
 const index = observer(() => {
 	const insets = useSafeAreaInsets();
 	const insetsTop = insets.top;
@@ -33,11 +96,50 @@ const index = observer(() => {
 		{ backgroundColor: Colors.systemFill },
 	];
 
-	const handleCreate = () => {
-		launchImagePlaygroundAsync();
+	const image$ = useObservable('');
+
+	const handleCreate = async () => {
+		if (animatedIndex.value > 0) {
+			const status: DeviceStatus = {
+				magneticField: magneticField$.z.peek(),
+				batteryLevel: batteryLevel$.peek(),
+				brightness: brightness$.peek(),
+				hour: getHourFromTimeString(time$.peek() || '12:00'),
+			};
+			const promptWords = getPromptWords(status);
+			launchImagePlaygroundAsync({
+				concepts: {
+					text: promptWords,
+				},
+			}).then((result) => {
+				if (result) {
+					image$.set(result);
+				}
+			});
+		} else if (animatedIndex.value === 0) {
+			launchImagePlaygroundAsync().then((result) => {
+				if (result) {
+					image$.set(result);
+				}
+			});
+		}
+
+		await when(image$);
+
+		const manipulator = await useImageManipulator(image$.peek());
+		const base64 = (
+			await (await manipulator.renderAsync()).saveAsync({ base64: true })
+		).base64;
+		if (base64) {
+			imagesStore$.images.push({ createdAt: Date.now(), base64 });
+		}
 	};
 
-	const snapPoints = [108 + insetsBottom, 204 + insetsBottom];
+	observe(imagesStore$.images, (e) => {
+		console.log('imagesStore$.images', e);
+	});
+
+	const snapPoints = [64 + insetsBottom, 216 + insetsBottom];
 
 	const animatedViewStyle = useAnimatedStyle(() => {
 		if (animatedIndex.value > 1) {
@@ -165,6 +267,7 @@ const styles = StyleSheet.create({
 		padding: 16,
 		borderCurve: 'continuous',
 		borderRadius: 16,
+		gap: 12,
 	},
 	infoTileContainer: {
 		flexDirection: 'row',
@@ -180,9 +283,9 @@ const styles = StyleSheet.create({
 		left: 16,
 		alignItems: 'center',
 		justifyContent: 'center',
-		height: 84,
+		height: 40,
 		borderCurve: 'continuous',
-		borderRadius: 16,
+		borderRadius: 20,
 		backgroundColor: Colors.systemFill,
 	},
 	bottomSheetBackgroundContainer: {
