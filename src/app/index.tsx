@@ -1,4 +1,4 @@
-import { ImageManipulator } from 'expo-image-manipulator';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { SymbolView } from 'expo-symbols';
 import {
 	Pressable,
@@ -126,7 +126,9 @@ const index = observer(() => {
 
 		await when(image$);
 
-		const manipulator = await ImageManipulator.manipulate(image$.peek());
+		const manipulator = await ImageManipulator.ImageManipulator.manipulate(
+			image$.peek(),
+		);
 		const manipResult = (await manipulator.renderAsync()).saveAsync({
 			base64: true,
 		});

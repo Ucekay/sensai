@@ -27,7 +27,7 @@
 		"expo-constants": "~17.0.3",
 		"expo-font": "~13.0.1",
 		"expo-image": "~2.0.0",
-		"expo-image-manipulator": "~13.0.5",
+		"expo-image-manipulator": "^13.0.5",
 		"expo-linking": "~7.0.2",
 		"expo-localization": "~16.0.0",
 		"expo-router": "~4.0.5",
@@ -68,5 +68,6 @@
 		"react-test-renderer": "18.2.0",
 		"typescript": "~5.3.3"
 	},
-	"private": true
+	"private": true,
+	"packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }

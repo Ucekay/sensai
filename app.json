@@ -31,12 +31,18 @@
 		"plugins": [
 			"expo-router",
 			"expo-font",
-			"expo-build-properties",
+			[
+				"expo-build-properties",
+				{
+					"ios": {
+						"deploymentTarget": "18.2"
+					}
+				}
+			],
 			"expo-localization"
 		],
 		"experiments": {
-			"typedRoutes": true,
-			"reactCompiler": false
+			"typedRoutes": true
 		}
 	}
 }
