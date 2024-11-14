@@ -15,7 +15,9 @@
     "preset": "jest-expo"
   },
   "dependencies": {
+    "@bacons/apple-colors": "^0.0.6",
     "@expo/vector-icons": "^14.0.4",
+    "@gorhom/bottom-sheet": "^5.0.5",
     "@legendapp/state": "^3.0.0-beta.17",
     "babel-plugin-react-compiler": "^19.0.0-beta-a7bf2bd-20241110",
     "expo": "^52.0.4",
@@ -26,6 +28,7 @@
     "expo-font": "~13.0.1",
     "expo-image": "~2.0.0",
     "expo-linking": "~7.0.2",
+    "expo-localization": "~16.0.0",
     "expo-router": "~4.0.3",
     "expo-sensors": "~14.0.1",
     "expo-splash-screen": "~0.29.7",

@@ -1,202 +1,200 @@
-import { ThemedText as Text } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { imagesStore$ } from '@/observable';
-import { observable } from '@legendapp/state';
+import { SFSymbol, SymbolView, SymbolViewProps } from 'expo-symbols';
+import { useEffect } from 'react';
 import {
-	Reactive,
-	observer,
-	useObservable,
-	useObserve,
-} from '@legendapp/state/react';
-import { Magnetometer, type MagnetometerMeasurement } from 'expo-sensors';
-import { Gyroscope } from 'expo-sensors';
-import { DeviceMotion } from 'expo-sensors';
-import { Barometer } from 'expo-sensors';
-import type { Subscription } from 'expo-sensors/src/DeviceSensor';
-import { useEffect, useState } from 'react';
+	Pressable,
+	SafeAreaView,
+	StyleSheet,
+	Text,
+	View,
+	useWindowDimensions,
+} from 'react-native';
 
-interface Subscriptions {
-	mag: Subscription | null;
-	gyro: Subscription | null;
-	motion: Subscription | null;
-	barometer: Subscription | null;
-}
+import * as Colors from '@bacons/apple-colors';
+import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import { observer } from '@legendapp/state/react';
+import { launchImagePlaygroundAsync } from 'react-native-apple-image-playground';
+import Animated, {
+	useAnimatedStyle,
+	useSharedValue,
+	withClamp,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import InfoTile from '@/components/InfoTile';
+import { imagesStore$ } from '@/observable';
 const index = observer(() => {
-	const subscription$ = useObservable<Subscriptions>({
-		mag: null,
-		gyro: null,
-		motion: null,
-		barometer: null,
-	});
+	const insets = useSafeAreaInsets();
+	const insetsTop = insets.top;
+	const insetsBottom = insets.bottom;
+	const { height } = useWindowDimensions();
+	const animatedIndex = useSharedValue(1);
+	const infoTileStyle = [
+		styles.infoTile,
+		{ backgroundColor: Colors.systemFill },
+	];
 
-	const magneticField$ = useObservable({
-		x: 0,
-		y: 0,
-		z: 0,
-	});
+	const handleCreate = () => {
+		launchImagePlaygroundAsync();
+	};
 
-	const gyroscope$ = useObservable({
-		x: 0,
-		y: 0,
-		z: 0,
-	});
+	const snapPoints = [108 + insetsBottom, 204 + insetsBottom];
 
-	const rotation$ = useObservable({
-		alpha: 0,
-		beta: 0,
-		gamma: 0,
-	});
-
-	const barometer$ = useObservable({
-		pressure: 0,
-	});
-
-	const normalMagneticField$ = useObservable(() => {
-		const magData = magneticField$.get();
-		const rotationData = rotation$.get();
-
-		const alpha = rotationData.alpha;
-		const beta = rotationData.beta;
-		const gamma = rotationData.gamma;
-
-		// 回転行列を構築
-		const cosA = Math.cos(alpha);
-		const sinA = Math.sin(alpha);
-		const cosB = Math.cos(beta);
-		const sinB = Math.sin(beta);
-		const cosG = Math.cos(gamma);
-		const sinG = Math.sin(gamma);
-
-		// Z軸回転行列（alpha）
-		const Rz = [
-			[cosA, -sinA, 0],
-			[sinA, cosA, 0],
-			[0, 0, 1],
-		];
-
-		// X軸回転行列（beta）
-		const Rx = [
-			[1, 0, 0],
-			[0, cosB, -sinB],
-			[0, sinB, cosB],
-		];
-
-		// Y軸回転行列（gamma）
-		const Ry = [
-			[cosG, 0, sinG],
-			[0, 1, 0],
-			[-sinG, 0, cosG],
-		];
-
-		// 総合的な回転行列を計算（順序に注意）
-		const R = multiplyMatrices(Rz, multiplyMatrices(Rx, Ry));
-
-		// 磁場ベクトルを取得
-		const magVector = [magData.x, magData.y, magData.z];
-
-		// 磁場ベクトルに回転行列を適用
-		const transformedMag = multiplyMatrixAndVector(R, magVector);
-
-		// 画面法線方向（デバイスのZ軸）の磁場成分を取得
-		const normalMagneticField = transformedMag[2];
-
-		return normalMagneticField;
-	});
-
-	// 行列の積を計算する関数
-	function multiplyMatrices(a: number[][], b: number[][]): number[][] {
-		const result: number[][] = [];
-		for (let i = 0; i < 3; i++) {
-			result[i] = [];
-			for (let j = 0; j < 3; j++) {
-				result[i][j] =
-					a[i][0] * b[0][j] + a[i][1] * b[1][j] + a[i][2] * b[2][j];
-			}
+	const animatedViewStyle = useAnimatedStyle(() => {
+		if (animatedIndex.value > 1) {
+			return {
+				height: height - insetsTop - snapPoints[1],
+			};
 		}
-		return result;
-	}
+		return {
+			height:
+				height -
+				insetsTop -
+				snapPoints[0] -
+				(snapPoints[1] - snapPoints[0]) * animatedIndex.value,
+		};
+	});
 
-	// 行列とベクトルの積を計算する関数
-	function multiplyMatrixAndVector(matrix: number[][], vector: number[]) {
-		const result = [];
-		for (let i = 0; i < 3; i++) {
-			result[i] =
-				matrix[i][0] * vector[0] +
-				matrix[i][1] * vector[1] +
-				matrix[i][2] * vector[2];
-		}
-		return result;
-	}
+	const animatedInfoContainerStyle = useAnimatedStyle(() => {
+		return {
+			opacity: animatedIndex.value,
+		};
+	});
 
-	const _subscribe = () => {
-		subscription$.mag.set(
-			Magnetometer.addListener((result) => {
-				magneticField$.assign(result);
-			}),
-		);
+	const animatedTextContainerStyle = useAnimatedStyle(() => {
+		return {
+			opacity: 1 - animatedIndex.value,
+		};
+	});
 
-		subscription$.gyro.set(
-			Gyroscope.addListener((result) => {
-				gyroscope$.assign(result);
-			}),
-		);
+	const animatedBackgroundStyle = useAnimatedStyle(() => {
+		return {
+			marginTop: (1 - animatedIndex.value) * 24,
+			marginHorizontal: (1 - animatedIndex.value) * 16,
+			marginBottom: (1 - animatedIndex.value) * insetsBottom,
+			opacity: animatedIndex.value,
+		};
+	});
 
-		subscription$.motion.set(
-			DeviceMotion.addListener((result) => {
-				rotation$.assign(result.rotation);
-			}),
-		);
-
-		subscription$.barometer.set(
-			Barometer.addListener((result) => {
-				barometer$.assign(result);
-			}),
+	const BottomSheetBackground = () => {
+		return (
+			<View
+				style={[
+					StyleSheet.absoluteFillObject,
+					styles.bottomSheetBackgroundContainer,
+				]}
+			>
+				<Animated.View
+					style={[
+						animatedBackgroundStyle,
+						StyleSheet.absoluteFillObject,
+						styles.bottomSheetBackgroundInner,
+					]}
+				/>
+			</View>
 		);
 	};
 
-	const _unsubscribe = () => {
-		subscription$.delete();
-		subscription$.assign({
-			mag: null,
-			gyro: null,
-			motion: null,
-		});
-	};
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-	useEffect(() => {
-		_subscribe();
-		Magnetometer.setUpdateInterval(500);
-		Gyroscope.setUpdateInterval(500);
-		DeviceMotion.setUpdateInterval(500);
-		return () => _unsubscribe();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
-
-	const magData = magneticField$.get();
-	const gyroData = gyroscope$.get();
-	const rotationData = rotation$.get();
-	const barometerData = barometer$.get();
-
-	const normalMag = normalMagneticField$.get();
-	useEffect(() => {
-		console.log('rendered');
-	}, []);
 	return (
-		<ThemedView
+		<View
 			style={{
 				flex: 1,
-				justifyContent: 'center',
-				alignItems: 'center',
+				padding: 16,
+				backgroundColor: Colors.systemBackground,
 			}}
 		>
-			<Text>Magnetic Field Normal to Screen:</Text>
-			<Text>{normalMag.toFixed(2)} μT</Text>
-			<Text>Barometer:</Text>
-			<Text>Pressure: {barometerData.pressure.toFixed(0)} Pa</Text>
-		</ThemedView>
+			<SafeAreaView>
+				<Animated.View style={animatedViewStyle}>
+					<View style={{ flex: 1 }}></View>
+					<Pressable style={styles.createButton} onPress={handleCreate}>
+						<SymbolView name="plus" tintColor={Colors.label} size={28} />
+					</Pressable>
+				</Animated.View>
+			</SafeAreaView>
+			<BottomSheet
+				animatedIndex={animatedIndex}
+				backgroundComponent={BottomSheetBackground}
+				enableDynamicSizing
+				index={1}
+				handleIndicatorStyle={{ backgroundColor: Colors.systemGray }}
+				snapPoints={snapPoints}
+				containerStyle={{ overflow: 'hidden' }}
+			>
+				<BottomSheetView
+					style={{
+						paddingBottom: insetsBottom,
+					}}
+				>
+					<Animated.View
+						style={[styles.infoTileContainer, animatedInfoContainerStyle]}
+					>
+						<InfoTile type="battery" style={infoTileStyle} />
+						<InfoTile type="brightness" style={infoTileStyle} />
+						<InfoTile type="time" style={infoTileStyle} />
+						<InfoTile type="magnetic" style={infoTileStyle} />
+					</Animated.View>
+					<Animated.View
+						style={[styles.disabledTextContainer, animatedTextContainerStyle]}
+					>
+						<Text style={[{ fontSize: 20 }, { color: Colors.label }]}>
+							Device status prompts disabled
+						</Text>
+					</Animated.View>
+				</BottomSheetView>
+			</BottomSheet>
+		</View>
 	);
 });
 
 export default index;
+
+const styles = StyleSheet.create({
+	createButton: {
+		alignItems: 'center',
+		alignSelf: 'center',
+		justifyContent: 'center',
+		width: 60,
+		height: 60,
+		margin: 16,
+		borderRadius: 30,
+		backgroundColor: Colors.tertiarySystemGroupedBackground,
+	},
+	infoTile: {
+		alignSelf: 'stretch',
+		flex: 1,
+		minWidth: '40%',
+		padding: 16,
+		borderCurve: 'continuous',
+		borderRadius: 16,
+	},
+	infoTileContainer: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		paddingHorizontal: 16,
+		columnGap: 12,
+		rowGap: 12,
+	},
+	disabledTextContainer: {
+		position: 'absolute',
+		zIndex: 0,
+		right: 16,
+		left: 16,
+		alignItems: 'center',
+		justifyContent: 'center',
+		height: 84,
+		borderCurve: 'continuous',
+		borderRadius: 16,
+		backgroundColor: Colors.systemFill,
+	},
+	bottomSheetBackgroundContainer: {
+		overflow: 'hidden',
+		borderCurve: 'continuous',
+		borderTopLeftRadius: 20,
+		borderTopRightRadius: 20,
+	},
+	bottomSheetBackgroundInner: {
+		borderCurve: 'continuous',
+		borderTopLeftRadius: 20,
+		borderTopRightRadius: 20,
+		backgroundColor: Colors.secondarySystemBackground,
+	},
+});

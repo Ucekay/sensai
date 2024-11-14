@@ -1,6 +1,5 @@
 import { View, type ViewProps } from 'react-native';
 
-import { Reactive } from '@legendapp/state/react';
 import { useThemeColor } from '../hooks/useThemeColor';
 
 export type ThemedViewProps = ViewProps & {
