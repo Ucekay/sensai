@@ -1,3 +1,4 @@
+import { ImageManipulator } from 'expo-image-manipulator';
 import { SymbolView } from 'expo-symbols';
 import {
 	Pressable,
@@ -8,16 +9,10 @@ import {
 	useWindowDimensions,
 } from 'react-native';
 
-import {
-	batteryLevel$,
-	brightness$,
-	magneticField$,
-	time$,
-} from '@/observable';
 import * as Colors from '@bacons/apple-colors';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
-import { Reactive, observer, useObservable } from '@legendapp/state/react';
-import { useImageManipulator } from 'expo-image-manipulator';
+import { observe, when } from '@legendapp/state';
+import { observer, useObservable } from '@legendapp/state/react';
 import { launchImagePlaygroundAsync } from 'react-native-apple-image-playground';
 import Animated, {
 	useAnimatedStyle,
@@ -27,7 +22,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import InfoTile from '@/components/InfoTile';
 import { imagesStore$ } from '@/observable';
-import { observe, when } from '@legendapp/state';
+import {
+	batteryLevel$,
+	brightness$,
+	magneticField$,
+	time$,
+} from '@/observable';
 
 // 磁力のマッピング (μT)
 const magneticFieldMap = (value: number): string => {
@@ -126,13 +126,11 @@ const index = observer(() => {
 
 		await when(image$);
 
-		const manipulator = await useImageManipulator(image$.peek());
-		const base64 = (
-			await (await manipulator.renderAsync()).saveAsync({ base64: true })
-		).base64;
-		if (base64) {
-			imagesStore$.images.push({ createdAt: Date.now(), base64 });
-		}
+		const manipulator = await ImageManipulator.manipulate(image$.peek());
+		const manipResult = (await manipulator.renderAsync()).saveAsync({
+			base64: true,
+		});
+		console.log('manipRestlt', manipResult);
 	};
 
 	observe(imagesStore$.images, (e) => {
