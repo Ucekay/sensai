@@ -4,18 +4,28 @@
 		"slug": "Sensai",
 		"version": "0.1.0",
 		"orientation": "portrait",
-		"icon": "./src/assets/images/icon.png",
+		"icon": "./src/assets/images/sensai-icon.png",
 		"scheme": "myapp",
 		"userInterfaceStyle": "automatic",
 		"newArchEnabled": true,
 		"splash": {
-			"image": "./src/assets/images/splash.png",
+			"image": "./src/assets/images/sensai-splash.png",
 			"resizeMode": "contain",
-			"backgroundColor": "#ffffff"
+			"backgroundColor": "#ffffff",
+			"dark": {
+				"image": "./src/assets/images/sensai-splash.png",
+				"resizeMode": "contain",
+				"backgroundColor": "#000000"
+			}
 		},
 		"ios": {
 			"supportsTablet": false,
-			"bundleIdentifier": "dev.loop.sensai"
+			"bundleIdentifier": "dev.loop.sensai",
+			"icon": {
+				"any": "./src/assets/images/sensai-icon.png",
+				"dark": "./src/assets/images/sensai-icon-dark.png",
+				"tinted": "./src/assets/images/sensai-icon.png"
+			}
 		},
 		"android": {
 			"adaptiveIcon": {
@@ -29,6 +39,12 @@
 			"favicon": "./src/assets/images/favicon.png"
 		},
 		"plugins": [
+			[
+				"expo-asset",
+				{
+					"assets": ["./src/assets/images/emix.jpg"]
+				}
+			],
 			"expo-router",
 			"expo-font",
 			[

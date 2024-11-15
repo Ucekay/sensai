@@ -1,14 +1,11 @@
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useMemo } from 'react';
 import {
-	Button,
-	FlatList,
 	Pressable,
-	SafeAreaView,
-	ScrollView,
 	StyleSheet,
 	Text,
 	View,
@@ -18,15 +15,8 @@ import {
 import * as Colors from '@bacons/apple-colors';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
-import { type Observable, observe, when } from '@legendapp/state';
-import {
-	For,
-	Reactive,
-	Show,
-	observer,
-	reactive,
-	useObservable,
-} from '@legendapp/state/react';
+import { type Observable, observe } from '@legendapp/state';
+import { For, observer } from '@legendapp/state/react';
 import { launchImagePlaygroundAsync } from 'react-native-apple-image-playground';
 import Animated, {
 	FadeIn,
@@ -40,8 +30,11 @@ import Share from 'react-native-share';
 import * as ContextMenu from 'zeego/context-menu';
 
 import InfoTile from '@/components/InfoTile';
-import { storage } from '@/mmkv';
-import { type Image as ImageType, imagesStore$ } from '@/observable';
+import {
+	type Image as ImageType,
+	imagesStore$,
+	isFollowPromptEnabled$,
+} from '@/observable';
 import {
 	batteryLevel$,
 	brightness$,
@@ -255,17 +248,15 @@ const ImagesListItem = observer(
 );
 
 const index = observer(() => {
+	const router = useRouter();
 	const insets = useSafeAreaInsets();
 	const insetsTop = insets.top;
 	const insetsBottom = insets.bottom;
-	const { height, width } = useWindowDimensions();
 	const animatedIndex = useSharedValue(1);
 	const infoTileStyle = [
 		styles.infoTile,
 		{ backgroundColor: Colors.systemFill },
 	];
-
-	const image$ = useObservable();
 
 	const handleCreate = async () => {
 		let result: string | undefined;
@@ -297,6 +288,15 @@ const index = observer(() => {
 					base64: manipResult.base64,
 				});
 			}
+			const dispose = observe((e) => {
+				if (
+					imagesStore$.images.get().length % 3 === 0 &&
+					isFollowPromptEnabled$.enabled.get()
+				) {
+					router.push('./follow-prompt-modal');
+				}
+			});
+			dispose();
 		}
 	};
 
@@ -323,18 +323,6 @@ const index = observer(() => {
 	const animatedTextContainerStyle = useAnimatedStyle(() => {
 		return {
 			opacity: 1 - animatedIndex.value,
-		};
-	});
-
-	const animatedDummyStyle = useAnimatedStyle(() => {
-		if (animatedIndex.value > 0) {
-			return {
-				height: snapPoints[1],
-			};
-		}
-		return {
-			height:
-				snapPoints[0] + (snapPoints[1] - snapPoints[0]) * animatedIndex.value,
 		};
 	});
 
@@ -394,7 +382,11 @@ const index = observer(() => {
 				style={[styles.buttonContainer, animatedButtonContainerStyle]}
 			>
 				<Pressable style={styles.createButton} onPress={handleCreate}>
-					<SymbolView name="plus" tintColor={Colors.label} size={28} />
+					<SymbolView
+						name="plus"
+						tintColor={Colors.label as unknown as string}
+						size={28}
+					/>
 				</Pressable>
 			</Animated.View>
 			<BottomSheet

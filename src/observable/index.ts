@@ -3,3 +3,4 @@ export * from './brightness';
 export * from './batteryLevel';
 export * from './magneticField';
 export * from './localHour';
+export * from './isFollowPromptEnabled';
