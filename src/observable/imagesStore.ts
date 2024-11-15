@@ -2,7 +2,7 @@ import { observable } from '@legendapp/state';
 import { ObservablePersistMMKV } from '@legendapp/state/persist-plugins/mmkv';
 import { syncObservable } from '@legendapp/state/sync';
 
-interface Image {
+export interface Image {
 	createdAt: number;
 	base64: string;
 }
@@ -12,7 +12,7 @@ interface ImagesStore {
 }
 
 const imagesStore$ = observable<ImagesStore>({
-	images: Array<Image>,
+	images: [],
 });
 
 syncObservable(imagesStore$, {

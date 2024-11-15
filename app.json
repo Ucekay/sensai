@@ -1,8 +1,8 @@
 {
 	"expo": {
-		"name": "hard",
-		"slug": "hard",
-		"version": "1.0.0",
+		"name": "Sensai",
+		"slug": "Sensai",
+		"version": "0.1.0",
 		"orientation": "portrait",
 		"icon": "./src/assets/images/icon.png",
 		"scheme": "myapp",
@@ -14,8 +14,8 @@
 			"backgroundColor": "#ffffff"
 		},
 		"ios": {
-			"supportsTablet": true,
-			"bundleIdentifier": "com.ucekay.hard"
+			"supportsTablet": false,
+			"bundleIdentifier": "dev.loop.sensai"
 		},
 		"android": {
 			"adaptiveIcon": {

@@ -1,8 +1,14 @@
+import * as Clipboard from 'expo-clipboard';
+import { Image } from 'expo-image';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { SymbolView } from 'expo-symbols';
+import { useMemo } from 'react';
 import {
+	Button,
+	FlatList,
 	Pressable,
 	SafeAreaView,
+	ScrollView,
 	StyleSheet,
 	Text,
 	View,
@@ -11,17 +17,30 @@ import {
 
 import * as Colors from '@bacons/apple-colors';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
-import { observe, when } from '@legendapp/state';
-import { observer, useObservable } from '@legendapp/state/react';
+import { type Observable, observe, when } from '@legendapp/state';
+import {
+	For,
+	Reactive,
+	Show,
+	observer,
+	reactive,
+	useObservable,
+} from '@legendapp/state/react';
 import { launchImagePlaygroundAsync } from 'react-native-apple-image-playground';
 import Animated, {
+	FadeIn,
+	FadeOut,
+	LinearTransition,
 	useAnimatedStyle,
 	useSharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Share from 'react-native-share';
+import * as ContextMenu from 'zeego/context-menu';
 
 import InfoTile from '@/components/InfoTile';
-import { imagesStore$ } from '@/observable';
+import { storage } from '@/mmkv';
+import { type Image as ImageType, imagesStore$ } from '@/observable';
 import {
 	batteryLevel$,
 	brightness$,
@@ -85,20 +104,146 @@ const getHourFromTimeString = (timeString: string): number => {
 	return Number.parseInt(timeString.split(':')[0], 10);
 };
 
+const ImagesListItem = observer(
+	({ item$ }: { item$: Observable<ImageType> }) => {
+		const { width } = useWindowDimensions();
+		const base64 = item$.base64.get();
+		const createdAt = item$.createdAt.get();
+
+		const handleEdit = async (base64: string) => {
+			const result = await launchImagePlaygroundAsync({
+				source: `data:image/jpg;base64,${base64}`,
+			});
+			if (result) {
+				const manipulator =
+					await ImageManipulator.ImageManipulator.manipulate(result);
+				const manipResult = await (await manipulator.renderAsync()).saveAsync({
+					base64: true,
+				});
+				if (manipResult.base64) {
+					imagesStore$.images.push({
+						createdAt: Date.now(),
+						base64: manipResult.base64,
+					});
+				}
+			}
+		};
+		const handleShare = (base64: string) => {
+			Share.open({
+				url: `data:image/jpg;base64,${base64}`,
+				filename: `image-playground-${createdAt}.jpg`,
+			});
+		};
+
+		const handleCopy = async (base64: string) => {
+			await Clipboard.setImageAsync(base64);
+		};
+
+		const hnadleDelete = (item$: Observable<ImageType>) => {
+			item$.delete();
+		};
+		return (
+			<Animated.View
+				style={{ width: width / 2 - 20, aspectRatio: 1 }}
+				entering={FadeIn}
+				exiting={FadeOut}
+				layout={LinearTransition}
+			>
+				<ContextMenu.Root
+					key={createdAt.toString()}
+					style={{ width: width / 2 - 20, aspectRatio: 1 }}
+				>
+					<ContextMenu.Trigger>
+						<Animated.View
+							style={{
+								width: width / 2 - 20,
+								aspectRatio: 1,
+								borderRadius: 16,
+								overflow: 'hidden',
+								borderCurve: 'continuous',
+							}}
+							entering={FadeIn}
+							exiting={FadeOut}
+						>
+							<Pressable style={{ width: width / 2 - 20, aspectRatio: 1 }}>
+								<Image
+									source={{ uri: `data:image/jpg;base64,${base64}` }}
+									style={StyleSheet.absoluteFillObject}
+								/>
+							</Pressable>
+						</Animated.View>
+					</ContextMenu.Trigger>
+
+					<ContextMenu.Content>
+						<ContextMenu.Group>
+							<ContextMenu.Item
+								key={`edit-${createdAt.toString()}`}
+								onSelect={() => handleEdit(base64)}
+							>
+								<ContextMenu.ItemTitle>Edit</ContextMenu.ItemTitle>
+								<ContextMenu.ItemIcon
+									ios={{
+										name: 'pencil',
+									}}
+								/>
+							</ContextMenu.Item>
+							<ContextMenu.Item
+								key={`share-${createdAt.toString()}`}
+								onSelect={() => handleShare(base64)}
+							>
+								<ContextMenu.ItemTitle>Share...</ContextMenu.ItemTitle>
+								<ContextMenu.ItemIcon
+									ios={{
+										name: 'square.and.arrow.up',
+									}}
+								/>
+							</ContextMenu.Item>
+							<ContextMenu.Item
+								key={`copy-${createdAt.toString()}`}
+								onSelect={() => handleCopy(base64)}
+							>
+								<ContextMenu.ItemTitle>Copy</ContextMenu.ItemTitle>
+								<ContextMenu.ItemIcon
+									ios={{
+										name: 'doc.on.doc',
+									}}
+								/>
+							</ContextMenu.Item>
+						</ContextMenu.Group>
+						<ContextMenu.Item
+							destructive
+							key={`delete-${createdAt.toString()}`}
+							onSelect={() => hnadleDelete(item$)}
+						>
+							<ContextMenu.ItemTitle>Delete</ContextMenu.ItemTitle>
+							<ContextMenu.ItemIcon
+								ios={{
+									name: 'trash',
+								}}
+							/>
+						</ContextMenu.Item>
+					</ContextMenu.Content>
+				</ContextMenu.Root>
+			</Animated.View>
+		);
+	},
+);
+
 const index = observer(() => {
 	const insets = useSafeAreaInsets();
 	const insetsTop = insets.top;
 	const insetsBottom = insets.bottom;
-	const { height } = useWindowDimensions();
+	const { height, width } = useWindowDimensions();
 	const animatedIndex = useSharedValue(1);
 	const infoTileStyle = [
 		styles.infoTile,
 		{ backgroundColor: Colors.systemFill },
 	];
 
-	const image$ = useObservable('');
+	const image$ = useObservable();
 
 	const handleCreate = async () => {
+		let result: string | undefined;
 		if (animatedIndex.value > 0) {
 			const status: DeviceStatus = {
 				magneticField: magneticField$.z.peek(),
@@ -107,52 +252,40 @@ const index = observer(() => {
 				hour: getHourFromTimeString(time$.peek() || '12:00'),
 			};
 			const promptWords = getPromptWords(status);
-			launchImagePlaygroundAsync({
+			result = await launchImagePlaygroundAsync({
 				concepts: {
 					text: promptWords,
 				},
-			}).then((result) => {
-				if (result) {
-					image$.set(result);
-				}
 			});
 		} else if (animatedIndex.value === 0) {
-			launchImagePlaygroundAsync().then((result) => {
-				if (result) {
-					image$.set(result);
-				}
-			});
+			result = await launchImagePlaygroundAsync();
 		}
-
-		await when(image$);
-
-		const manipulator = await ImageManipulator.ImageManipulator.manipulate(
-			image$.peek(),
-		);
-		const manipResult = (await manipulator.renderAsync()).saveAsync({
-			base64: true,
-		});
-		console.log('manipRestlt', manipResult);
+		if (result) {
+			const manipulator =
+				await ImageManipulator.ImageManipulator.manipulate(result);
+			const manipResult = await (await manipulator.renderAsync()).saveAsync({
+				base64: true,
+			});
+			if (manipResult.base64) {
+				imagesStore$.images.push({
+					createdAt: Date.now(),
+					base64: manipResult.base64,
+				});
+			}
+		}
 	};
-
-	observe(imagesStore$.images, (e) => {
-		console.log('imagesStore$.images', e);
-	});
 
 	const snapPoints = [64 + insetsBottom, 216 + insetsBottom];
 
-	const animatedViewStyle = useAnimatedStyle(() => {
+	const animatedButtonContainerStyle = useAnimatedStyle(() => {
 		if (animatedIndex.value > 1) {
 			return {
-				height: height - insetsTop - snapPoints[1],
+				bottom: snapPoints[1],
 			};
 		}
 		return {
-			height:
-				height -
-				insetsTop -
-				snapPoints[0] -
-				(snapPoints[1] - snapPoints[0]) * animatedIndex.value,
+			bottom:
+				snapPoints[0] + (snapPoints[1] - snapPoints[0]) * animatedIndex.value,
 		};
 	});
 
@@ -168,6 +301,18 @@ const index = observer(() => {
 		};
 	});
 
+	const animatedDummyStyle = useAnimatedStyle(() => {
+		if (animatedIndex.value > 0) {
+			return {
+				height: snapPoints[1],
+			};
+		}
+		return {
+			height:
+				snapPoints[0] + (snapPoints[1] - snapPoints[0]) * animatedIndex.value,
+		};
+	});
+
 	const animatedBackgroundStyle = useAnimatedStyle(() => {
 		return {
 			marginTop: (1 - animatedIndex.value) * 24,
@@ -176,6 +321,16 @@ const index = observer(() => {
 			opacity: animatedIndex.value,
 		};
 	});
+
+	const listContainerStyle = useMemo(() => {
+		return [
+			styles.listContainer,
+			{
+				paddingTop: insetsTop,
+				paddingBottom: insetsBottom,
+			},
+		];
+	}, [insetsTop, insetsBottom]);
 
 	const BottomSheetBackground = () => {
 		return (
@@ -197,29 +352,34 @@ const index = observer(() => {
 	};
 
 	return (
-		<View
-			style={{
-				flex: 1,
-				padding: 16,
-				backgroundColor: Colors.systemBackground,
-			}}
-		>
-			<SafeAreaView>
-				<Animated.View style={animatedViewStyle}>
-					<View style={{ flex: 1 }}></View>
-					<Pressable style={styles.createButton} onPress={handleCreate}>
-						<SymbolView name="plus" tintColor={Colors.label} size={28} />
-					</Pressable>
-				</Animated.View>
-			</SafeAreaView>
+		<View style={styles.container}>
+			<Animated.ScrollView
+				showsVerticalScrollIndicator={false}
+				style={{
+					flex: 1,
+				}}
+				layout={LinearTransition}
+			>
+				<View style={listContainerStyle}>
+					<For each={imagesStore$.images} item={ImagesListItem} />
+				</View>
+				<View style={{ height: snapPoints[1] }} />
+			</Animated.ScrollView>
+			<Animated.View
+				style={[styles.buttonContainer, animatedButtonContainerStyle]}
+			>
+				<Pressable style={styles.createButton} onPress={handleCreate}>
+					<SymbolView name="plus" tintColor={Colors.label} size={28} />
+				</Pressable>
+			</Animated.View>
 			<BottomSheet
 				animatedIndex={animatedIndex}
 				backgroundComponent={BottomSheetBackground}
 				enableDynamicSizing
 				index={1}
-				handleIndicatorStyle={{ backgroundColor: Colors.systemGray }}
+				handleIndicatorStyle={styles.bottomSheetHandleIndicator}
 				snapPoints={snapPoints}
-				containerStyle={{ overflow: 'hidden' }}
+				containerStyle={styles.bottomSheetContainer}
 			>
 				<BottomSheetView
 					style={{
@@ -237,9 +397,19 @@ const index = observer(() => {
 					<Animated.View
 						style={[styles.disabledTextContainer, animatedTextContainerStyle]}
 					>
-						<Text style={[{ fontSize: 20 }, { color: Colors.label }]}>
-							Device status prompts disabled
-						</Text>
+						<View
+							style={[
+								StyleSheet.absoluteFill,
+								{
+									backgroundColor: Colors.systemFill,
+									justifyContent: 'center',
+								},
+							]}
+						>
+							<Text style={styles.disabledText}>
+								Device status prompts disabled
+							</Text>
+						</View>
 					</Animated.View>
 				</BottomSheetView>
 			</BottomSheet>
@@ -250,6 +420,19 @@ const index = observer(() => {
 export default index;
 
 const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+		backgroundColor: Colors.systemBackground,
+	},
+	listContainer: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		justifyContent: 'flex-start',
+
+		paddingHorizontal: 16,
+
+		gap: 8,
+	},
 	createButton: {
 		alignItems: 'center',
 		alignSelf: 'center',
@@ -281,12 +464,19 @@ const styles = StyleSheet.create({
 		zIndex: 0,
 		right: 16,
 		left: 16,
+		overflow: 'hidden',
 		alignItems: 'center',
 		justifyContent: 'center',
 		height: 40,
 		borderCurve: 'continuous',
 		borderRadius: 20,
-		backgroundColor: Colors.systemFill,
+		backgroundColor: Colors.systemBackground,
+	},
+	disabledText: {
+		fontSize: 20,
+		textAlign: 'center',
+		textAlignVertical: 'center',
+		color: Colors.label,
 	},
 	bottomSheetBackgroundContainer: {
 		overflow: 'hidden',
@@ -299,5 +489,16 @@ const styles = StyleSheet.create({
 		borderTopLeftRadius: 20,
 		borderTopRightRadius: 20,
 		backgroundColor: Colors.secondarySystemBackground,
+	},
+	bottomSheetHandleIndicator: { backgroundColor: Colors.systemGray },
+	bottomSheetContainer: { overflow: 'hidden' },
+	buttonContainer: {
+		position: 'absolute',
+		right: 0,
+		bottom: 0,
+		left: 0,
+		alignItems: 'center',
+		flexDirection: 'row',
+		justifyContent: 'center',
 	},
 });
