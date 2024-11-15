@@ -16,6 +16,7 @@
 	},
 	"dependencies": {
 		"@bacons/apple-colors": "^0.0.6",
+		"@expo/react-native-action-sheet": "^4.1.0",
 		"@expo/vector-icons": "^14.0.4",
 		"@gorhom/bottom-sheet": "^5.0.5",
 		"@legendapp/state": "^3.0.0-beta.19",

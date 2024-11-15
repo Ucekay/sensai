@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 
 import * as Colors from '@bacons/apple-colors';
+import { useActionSheet } from '@expo/react-native-action-sheet';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { type Observable, observe, when } from '@legendapp/state';
 import {
@@ -106,6 +107,7 @@ const getHourFromTimeString = (timeString: string): number => {
 
 const ImagesListItem = observer(
 	({ item$ }: { item$: Observable<ImageType> }) => {
+		const { showActionSheetWithOptions } = useActionSheet();
 		const { width } = useWindowDimensions();
 		const base64 = item$.base64.get();
 		const createdAt = item$.createdAt.get();
@@ -139,8 +141,31 @@ const ImagesListItem = observer(
 			await Clipboard.setImageAsync(base64);
 		};
 
-		const hnadleDelete = (item$: Observable<ImageType>) => {
-			item$.delete();
+		const handleDelete = (item$: Observable<ImageType>) => {
+			const title = 'Are you sure you want to delete this image?';
+			const message =
+				'This image will be deleted from this app but will remain in your Image Playground app.. ';
+			const options = ['Delete', 'Cancel'];
+			const destructiveButtonIndex = 0;
+			const cancelButtonIndex = 1;
+			showActionSheetWithOptions(
+				{
+					title,
+					message,
+					options,
+					cancelButtonIndex,
+					destructiveButtonIndex,
+				},
+				async (selectedIndex) => {
+					switch (selectedIndex) {
+						case 0:
+							item$.delete();
+							break;
+						case 1:
+							break;
+					}
+				},
+			);
 		};
 		return (
 			<Animated.View
@@ -213,7 +238,7 @@ const ImagesListItem = observer(
 						<ContextMenu.Item
 							destructive
 							key={`delete-${createdAt.toString()}`}
-							onSelect={() => hnadleDelete(item$)}
+							onSelect={() => handleDelete(item$)}
 						>
 							<ContextMenu.ItemTitle>Delete</ContextMenu.ItemTitle>
 							<ContextMenu.ItemIcon
