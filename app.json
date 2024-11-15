@@ -1,7 +1,7 @@
 {
 	"expo": {
-		"name": "Sensai",
-		"slug": "Sensai",
+		"name": "Sensigh",
+		"slug": "Sensigh",
 		"version": "0.1.0",
 		"orientation": "portrait",
 		"icon": "./src/assets/images/sensai-icon.png",
@@ -20,7 +20,7 @@
 		},
 		"ios": {
 			"supportsTablet": false,
-			"bundleIdentifier": "dev.loop.sensai",
+			"bundleIdentifier": "dev.loop.sensigh",
 			"icon": {
 				"any": "./src/assets/images/sensai-icon.png",
 				"dark": "./src/assets/images/sensai-icon-dark.png",
@@ -59,6 +59,14 @@
 		],
 		"experiments": {
 			"typedRoutes": true
+		},
+		"extra": {
+			"router": {
+				"origin": false
+			},
+			"eas": {
+				"projectId": "79bb21a3-e29e-4c82-a87f-18a2a43be1e0"
+			}
 		}
 	}
 }
