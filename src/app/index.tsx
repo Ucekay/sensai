@@ -162,14 +162,26 @@ const ImagesListItem = observer(
 		};
 		return (
 			<Animated.View
-				style={{ width: width / 2 - 20, aspectRatio: 1 }}
+				style={{
+					width: width / 2 - 20,
+					aspectRatio: 1,
+					borderRadius: 16,
+					borderCurve: 'continuous',
+					overflow: 'hidden',
+				}}
 				entering={FadeIn}
 				exiting={FadeOut}
 				layout={LinearTransition}
 			>
 				<ContextMenu.Root
 					key={createdAt.toString()}
-					style={{ width: width / 2 - 20, aspectRatio: 1 }}
+					style={{
+						width: width / 2 - 20,
+						aspectRatio: 1,
+						borderRadius: 16,
+						borderCurve: 'continuous',
+						overflow: 'hidden',
+					}}
 				>
 					<ContextMenu.Trigger>
 						<Animated.View
