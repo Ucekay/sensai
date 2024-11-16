@@ -1,5 +1,5 @@
 import { useCalendars, useLocales } from 'expo-localization';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { ViewProps } from 'react-native';
 
@@ -31,18 +31,20 @@ const InfoTile = observer((props: InfoTileProps) => {
 	const languageTag = locales[0]?.languageTag;
 	const timeZone = calendars[0]?.timeZone;
 
-	time$.set(() => {
+	useEffect(() => {
 		if (languageTag && timeZone) {
-			return new Date(currentTime.get()).toLocaleTimeString(languageTag, {
-				timeZone,
-				hour: 'numeric',
-				minute: 'numeric',
-				hour12: false,
-			});
+			time$.set(() =>
+				new Date(currentTime.get()).toLocaleTimeString(languageTag, {
+					timeZone,
+					hour: 'numeric',
+					minute: 'numeric',
+					hour12: false,
+				}),
+			);
+		} else {
+			time$.set(() => '');
 		}
-		return '';
-	});
-
+	}, [languageTag, timeZone]); // 依存配列に必要な値を指定
 	const getValue = () => {
 		switch (type) {
 			case 'magnetic':

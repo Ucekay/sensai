@@ -1,11 +1,11 @@
 {
 	"expo": {
 		"name": "Sensigh",
-		"slug": "Sensigh",
-		"version": "0.1.0",
+		"slug": "Sensai",
+		"version": "0.1.1",
 		"orientation": "portrait",
 		"icon": "./src/assets/images/sensai-icon.png",
-		"scheme": "myapp",
+		"scheme": "sensigh",
 		"userInterfaceStyle": "automatic",
 		"newArchEnabled": true,
 		"splash": {
