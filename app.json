@@ -2,7 +2,7 @@
 	"expo": {
 		"name": "Sensigh",
 		"slug": "Sensai",
-		"version": "0.1.1",
+		"version": "0.1.2",
 		"orientation": "portrait",
 		"icon": "./src/assets/images/sensai-icon.png",
 		"scheme": "sensigh",
