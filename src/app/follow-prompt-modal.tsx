@@ -46,10 +46,10 @@ export default function FollowPromptModal() {
 	return (
 		<View style={[styles.container, { paddingTop: headerHeight }]}>
 			<View style={styles.imageContainer}>
-				<Image source={image} style={{ width: '125%', aspectRatio: 1 }} />
+				<Image source={image} style={styles.image} />
 			</View>
 			<View style={styles.textContainer}>
-				<Text style={{ fontSize: 24 }}>Hi! I'm DevLoop. 👋</Text>
+				<Text style={styles.textHead}>Hi! I'm DevLoop. 👋</Text>
 				<Text style={styles.text}>
 					{' '}
 					If you enjoy this app or would like to support my journey, please
@@ -107,6 +107,7 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 		aspectRatio: 1,
 	},
+	image: { width: '125%', aspectRatio: 1 },
 	text: {
 		fontSize: 20,
 		color: Colors.label,
@@ -114,6 +115,7 @@ const styles = StyleSheet.create({
 	followMe: {
 		flexDirection: 'row',
 	},
+	textHead: { fontSize: 24, color: Colors.label },
 	textBody: {
 		fontSize: 17,
 		color: Colors.label,

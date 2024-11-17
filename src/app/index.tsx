@@ -160,41 +160,26 @@ const ImagesListItem = observer(
 				},
 			);
 		};
+
+		const imageWidth = width / 2 - 20;
 		return (
 			<Animated.View
-				style={{
-					width: width / 2 - 20,
-					aspectRatio: 1,
-					borderRadius: 16,
-					borderCurve: 'continuous',
-				}}
+				style={[styles.contextMenuRootContainer, { width: imageWidth }]}
 				entering={FadeIn}
 				exiting={FadeOut}
 				layout={LinearTransition}
 			>
 				<ContextMenu.Root
 					key={createdAt.toString()}
-					style={{
-						width: width / 2 - 20,
-						aspectRatio: 1,
-						borderRadius: 16,
-						borderCurve: 'continuous',
-						overflow: 'hidden',
-					}}
+					style={[styles.contextMenuRoot, { width: imageWidth }]}
 				>
 					<ContextMenu.Trigger>
 						<Animated.View
-							style={{
-								width: width / 2 - 20,
-								aspectRatio: 1,
-								borderRadius: 16,
-								overflow: 'hidden',
-								borderCurve: 'continuous',
-							}}
+							style={[styles.contextMenuRootInner, { width: imageWidth }]}
 							entering={FadeIn}
 							exiting={FadeOut}
 						>
-							<Pressable style={{ width: width / 2 - 20, aspectRatio: 1 }}>
+							<Pressable style={{ width: imageWidth, aspectRatio: 1 }}>
 								<Image
 									source={{ uri: `data:image/jpg;base64,${base64}` }}
 									style={StyleSheet.absoluteFillObject}
@@ -528,5 +513,22 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		flexDirection: 'row',
 		justifyContent: 'center',
+	},
+	contextMenuRoot: {
+		overflow: 'hidden',
+		borderCurve: 'continuous',
+		borderRadius: 16,
+		aspectRatio: 1,
+	},
+	contextMenuRootContainer: {
+		borderCurve: 'continuous',
+		borderRadius: 16,
+		aspectRatio: 1,
+	},
+	contextMenuRootInner: {
+		overflow: 'hidden',
+		borderCurve: 'continuous',
+		borderRadius: 16,
+		aspectRatio: 1,
 	},
 });
