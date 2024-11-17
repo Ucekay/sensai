@@ -167,7 +167,6 @@ const ImagesListItem = observer(
 					aspectRatio: 1,
 					borderRadius: 16,
 					borderCurve: 'continuous',
-					overflow: 'hidden',
 				}}
 				entering={FadeIn}
 				exiting={FadeOut}
